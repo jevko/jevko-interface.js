@@ -1,0 +1,6 @@
+[
+  version [0.2.1]
+  output [localConfig.json]
+]
+todo: put the path to jevko-vscode/src/node/ here
+jevkoVscodeTargetPath [$INVALID$]
