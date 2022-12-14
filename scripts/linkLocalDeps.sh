@@ -1,2 +1,2 @@
 cd bundlable
-ln --symbolic --force deps.blocal.js deps.b.js
+echo "export * from './deps.blocal.js'" > deps.b.js

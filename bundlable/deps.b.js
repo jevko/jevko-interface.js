@@ -1,1 +1,1 @@
-deps.bremote.js
+export * from './deps.bremote.js'
