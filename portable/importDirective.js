@@ -1,5 +1,5 @@
 import { dirname, join, isAbsolute, readTextFileSync } from "../nonportable/deps.js";
-import {parseJevkoWithHeredocs} from '../bundlable/deps.b.js'
+import {convert, parseJevkoWithHeredocs} from '../bundlable/deps.b.js'
 
 //?todo: extract to a separate lib
 //?todo: handle via streaming (requires rearchitecting and rewriting the entire jevko cli)
@@ -46,7 +46,10 @@ export const importDirective = (jevko, options) => {
         // paste: how to be consistent accross formats?
         // maybe paste as `/jevko:paste/.../jevko:paste/
 
-        const fileName = string(jevko)
+        const opts = convert(jevko)
+
+        const fileName = typeof opts === 'string'? opts: opts.path
+        const tag = typeof opts === 'string'? undefined: opts.tag
 
         let path
         if (isAbsolute(fileName)) path = fileName
@@ -55,7 +58,7 @@ export const importDirective = (jevko, options) => {
         // console.log(isAbsolute(fileName), fileName, dir, path)
 
         const src = readTextFileSync(path)
-        subs.push(makeTextNode(src))
+        subs.push(makeTextNode(src, tag))
         continue
       }
       // note: unknown directives are treated as normal subjevkos
@@ -75,15 +78,16 @@ const string = jevko => {
   return suffix
 }
 
-const makeTextNode = text => {
+const makeTextNode = (text, tag) => {
   return {
     prefix: "", 
-    jevko: suffixToJevko(text),
+    jevko: suffixToJevko(text, tag),
   }
 }
-const suffixToJevko = suffix => {
+const suffixToJevko = (suffix, tag) => {
   return {
     subjevkos: [],
     suffix,
+    tag,
   }
 }
