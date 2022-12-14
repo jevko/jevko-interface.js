@@ -1,1 +1,1 @@
-deps.blocal.js
+deps.bremote.js
