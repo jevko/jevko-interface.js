@@ -1,7 +1,5 @@
 import {readFileSync, writeFileSync, mkdirSync, lstatSync} from 'node:fs'
 
-// todo:  either drop or extract to a jevko-lib and reuse in formats
-
 export const readTextFileSync = (fileName) => {
   return readFileSync(fileName, 'utf-8')
 }

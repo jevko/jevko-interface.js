@@ -65,7 +65,6 @@ export const main = async (argmap = {}) => {
   }  
 }
 
-//?todo: create path if not exists
 const write = (result, options) => {
   //?todo: rename /output to /to file
   let {output, dir} = options
@@ -103,6 +102,7 @@ const write = (result, options) => {
         throw Error(`File ${output} exists!`)
       }
     }
+    // create path if not exists
     mkdirRecursiveSync(dirname(output), {recursive: true})
     writeTextFileSync(output, result)
   }

@@ -8,7 +8,7 @@ export const writeTextFileSync = (fileName, contents) => {
   return Deno.writeTextFileSync(fileName, contents)
 }
 
-// todo: put that in an external lib
+// todo: put that in an external lib -- then it would make sense to also put the node version of this into an external lib
 export const readStdinText = async () => {
   let src = ''
   const decoder = new TextDecoder()

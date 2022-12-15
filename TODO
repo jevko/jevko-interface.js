@@ -1,2 +1,3 @@
 FIX markup test
   figure out the missing newline
+introduce makeHighlighter back into jevkoml as an option
