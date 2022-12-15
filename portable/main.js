@@ -8,8 +8,14 @@ const defaultOptions = {
   platform: 'deno'
 }
 
+const defaultOutput_ = (text) => console.log(text)
+const defaultInput_ = async () => readStdinText()
+
 export const main = async (argmap = {}) => {
-  let {format, input} = argmap
+  let {
+    input, 
+    defaultInput = defaultInput_,
+  } = argmap
   // todo: exactly 1?
   let source
   
@@ -24,7 +30,7 @@ export const main = async (argmap = {}) => {
     //?todo: perhaps file extension should not override in-file options
     if (argmap.format === undefined) argmap.format = extname(fileName).slice(1)
   } else {
-    source = await readStdinText()
+    source = await defaultInput()
     argmap.dir = '.'
   }
   
@@ -67,7 +73,11 @@ export const main = async (argmap = {}) => {
 
 const write = (result, options) => {
   //?todo: rename /output to /to file
-  let {output, dir} = options
+  let {
+    output, 
+    dir, 
+    defaultOutput = defaultOutput_,
+  } = options
 
   // infer output from input
   if (output === undefined && options['infer output'] === true) {
@@ -108,7 +118,7 @@ const write = (result, options) => {
   }
 
   // todo: console.log makes no sense in vscode interface
-  if (output === undefined) console.log(result)
+  if (output === undefined) defaultOutput(result)
   else {
     if (isAbsolute(output)) {
       commit(output)
