@@ -1,0 +1,12 @@
+{
+  "type": "commonjs",
+  "name": "jevko-interface.js",
+  "main": "node/bundle.js",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jevko/jevko-interface.js.git"
+  },
+  "author": "Darius J Chuck",
+  "license": "MIT"
+}
