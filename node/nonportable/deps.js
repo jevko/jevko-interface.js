@@ -40,3 +40,12 @@ export const run = (opts) => {
   const stdio = [mapStdio(stdin), mapStdio(stdout), mapStdio(stderr)]
   return spawn(command, args, {stdio})
 }
+
+// todo: test
+export const endProc = async (proc) => {
+  return new Promise((resolve, reject) => {
+    proc.on('close', (code) => {
+      resolve(code)
+    })
+  })
+}

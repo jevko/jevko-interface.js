@@ -9,3 +9,7 @@ export const fetchText = async url => {
 export const run = (opts) => {
   return Deno.run(opts)
 }
+
+export const endProc = async (proc) => {
+  return proc.status()
+}
