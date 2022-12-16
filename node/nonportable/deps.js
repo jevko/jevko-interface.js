@@ -50,10 +50,20 @@ export const endProc = async (proc) => {
   })
 }
 
+// todo: implement, test
+// https://nodejs.org/api/stream.html#class-streamwritable
 export const writeFullStdin = async (proc, bytes) => {
   throw Error("NODEJS writeFullStdin NOT IMPLEMENTED")
 }
 
+// todo: implement (ret bytes), test
+// https://nodejs.org/api/stream.html#class-streamreadable
 export const readFullStdout = async (proc) => {
   throw Error("NODEJS readFullStdout NOT IMPLEMENTED")
+
+  // let ret = ''
+
+  // proc.stdout.on('data', (data) => {
+  //   console.log(`stdout: ${data}`);
+  // });
 }

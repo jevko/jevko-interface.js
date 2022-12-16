@@ -16,11 +16,13 @@ export const endProc = async (proc) => {
   return proc.status()
 }
 
+// todo: perhaps make this writeFullStdinText
 export const writeFullStdin = async (proc, bytes) => {
   await proc.stdin.write(bytes)
   return await proc.stdin.close()
 }
 
+// todo: perhaps make this readFullStdinText
 export const readFullStdout = async (proc) => {
   const bytes = await readAll(proc.stdout)
   await proc.stdout.close()
