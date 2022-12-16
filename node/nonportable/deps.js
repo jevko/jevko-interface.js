@@ -49,3 +49,11 @@ export const endProc = async (proc) => {
     })
   })
 }
+
+export const writeFullStdin = async (proc, bytes) => {
+  throw Error("NODEJS writeFullStdin NOT IMPLEMENTED")
+}
+
+export const readFullStdout = async (proc) => {
+  throw Error("NODEJS readFullStdout NOT IMPLEMENTED")
+}
