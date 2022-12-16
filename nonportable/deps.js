@@ -5,3 +5,7 @@ export const fetchText = async url => {
   const x = await fetch(url)
   return x.text()
 }
+
+export const run = (opts) => {
+  return Deno.run(opts)
+}
