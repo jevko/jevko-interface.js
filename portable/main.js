@@ -67,11 +67,11 @@ export const main = async (argmap = {}) => {
       result = jevkodata(preppedJevko, options)
     } else throw Error(`Unrecognized format: ${format}`)
     
-    write(result, options)
+    await write(result, options)
   }  
 }
 
-const write = (result, options) => {
+const write = async (result, options) => {
   //?todo: rename /output to /to file
   let {
     output, 
@@ -121,10 +121,10 @@ const write = (result, options) => {
   if (output === undefined) defaultOutput(result)
   else {
     if (isAbsolute(output)) {
-      commit(output)
+      await commit(output)
     } else {
       const outpath = join(dir, output)
-      commit(outpath)
+      await commit(outpath)
     }
   }
 }

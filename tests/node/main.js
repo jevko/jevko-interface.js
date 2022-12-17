@@ -12,12 +12,12 @@ const test = async (name, fn) => {
 }
 
 const assertEquals = (a, b) => {
-  if (a !== b) throw Error('oops')
+  if (a !== b) throw Error(`Assertion failed! ${a} !== ${b}`)
 }
 
 test('run', async () => {
   const proc = run({
-    cmd: ['deno']
+    cmd: ['node']
   })
 
   writeFullStdinText(proc, 'console.log("TEST")\n')

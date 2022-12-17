@@ -1829,10 +1829,10 @@ var main = async (argmap = {}) => {
       result = jevkodata(preppedJevko, options);
     } else
       throw Error(`Unrecognized format: ${format}`);
-    write(result, options);
+    await write(result, options);
   }
 };
-var write = (result, options) => {
+var write = async (result, options) => {
   let {
     output,
     dir,
@@ -1872,10 +1872,10 @@ var write = (result, options) => {
     defaultOutput(result);
   else {
     if ((0, import_node_path.isAbsolute)(output)) {
-      commit(output);
+      await commit(output);
     } else {
       const outpath = (0, import_node_path.join)(dir, output);
-      commit(outpath);
+      await commit(outpath);
     }
   }
 };
