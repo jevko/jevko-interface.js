@@ -50,9 +50,7 @@ export const endProc = async (proc) => {
   })
 }
 
-// todo: implement, test
-// https://nodejs.org/api/stream.html#class-streamwritable
-export const writeFullStdin = async (proc, text) => {
+export const writeFullStdinText = async (proc, text) => {
   const {stdin} = proc
 
   stdin.setDefaultEncoding('utf-8')
@@ -60,9 +58,7 @@ export const writeFullStdin = async (proc, text) => {
   stdin.end(text)
 }
 
-// todo: implement (ret bytes), test
-// https://nodejs.org/api/stream.html#class-streamreadable
-export const readFullStdout = async (proc) => {
+export const readFullStdoutText = async (proc) => {
   const {stdout} = proc
 
   stdout.setEncoding('utf8')

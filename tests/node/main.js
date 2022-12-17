@@ -1,4 +1,4 @@
-import {run, readFullStdout, writeFullStdin} from '../../node/nonportable/deps.js'
+import {run, readFullStdoutText, writeFullStdinText} from '../../node/nonportable/deps.js'
 
 const test = async (name, fn) => {
   process.stdout.write(`Running test '${name}'... `)
@@ -20,9 +20,9 @@ test('run', async () => {
     cmd: ['deno']
   })
 
-  writeFullStdin(proc, 'console.log("TEST")\n')
+  writeFullStdinText(proc, 'console.log("TEST")\n')
 
-  const out = await readFullStdout(proc)
+  const out = await readFullStdoutText(proc)
 
   assertEquals(out.includes('TEST'), true)
 })

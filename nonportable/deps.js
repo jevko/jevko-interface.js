@@ -17,15 +17,13 @@ export const endProc = async (proc) => {
 }
 
 const textEncoder = new TextEncoder()
-// todo: perhaps make this writeFullStdinText
-export const writeFullStdin = async (proc, text) => {
+export const writeFullStdinText = async (proc, text) => {
   await proc.stdin.write(textEncoder.encode(text))
   await proc.stdin.close()
 }
 
 const textDecoder = new TextDecoder()
-// todo: perhaps make this readFullStdinText
-export const readFullStdout = async (proc) => {
+export const readFullStdoutText = async (proc) => {
   const bytes = await readAll(proc.stdout)
   await proc.stdout.close()
   return textDecoder.decode(bytes)
