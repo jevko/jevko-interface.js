@@ -1,5 +1,6 @@
 [
   output [out/feed.rss]
+  overwrite [true]
   root [[rss][channel]]
 ]
 version=[2.0]
