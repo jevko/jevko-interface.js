@@ -38,7 +38,10 @@ export const run = (opts) => {
   // Deno: inherit, piped, null
   // Node: inherit, pipe, ignore
   const stdio = [mapStdio(stdin), mapStdio(stdout), mapStdio(stderr)]
-  return spawn(command, args, {stdio})
+  return spawn(command, args, {
+    stdio,
+    cwd: opts.cwd,
+  })
 }
 
 // todo: test

@@ -1682,6 +1682,7 @@ var jevkoFromString1 = (str, delimiters) => {
 
 // node/nonportable/deps.js
 var import_node_path = require("node:path");
+var import_node_child_process = require("node:child_process");
 
 // node/nonportable/io.js
 var import_node_fs = require("node:fs");
@@ -1718,6 +1719,34 @@ var existsSync = (path) => {
       return false;
     throw e;
   }
+};
+
+// node/nonportable/deps.js
+var stdioMap = /* @__PURE__ */ new Map([
+  ["inherit", "inherit"],
+  ["piped", "pipe"],
+  ["null", "ignore"]
+]);
+var mapStdio = (deno) => {
+  if (stdioMap.has(deno))
+    return stdioMap.get(deno);
+  throw Error("Unrecognized stdio option: " + deno);
+};
+var run = (opts) => {
+  const [command, ...args] = opts.cmd;
+  const { stdin = "piped", stdout = "piped", stderr = "piped" } = opts;
+  const stdio = [mapStdio(stdin), mapStdio(stdout), mapStdio(stderr)];
+  return (0, import_node_child_process.spawn)(command, args, {
+    stdio,
+    cwd: opts.cwd
+  });
+};
+var endProc = async (proc) => {
+  return new Promise((resolve, reject) => {
+    proc.on("close", (code) => {
+      resolve(code);
+    });
+  });
 };
 
 // node/portable/importDirective.js
@@ -1871,13 +1900,31 @@ var write = async (result, options) => {
   if (output === void 0)
     defaultOutput(result);
   else {
-    if ((0, import_node_path.isAbsolute)(output)) {
-      await commit(output);
-    } else {
-      const outpath = (0, import_node_path.join)(dir, output);
-      await commit(outpath);
+    const outpath = (0, import_node_path.isAbsolute)(output) ? output : (0, import_node_path.join)(dir, output);
+    await commit(outpath);
+    if (options.postout) {
+      const { postout } = options;
+      let cmd;
+      if (typeof postout === "string") {
+        cmd = [postout];
+      } else if (isArrayOfStrings(postout)) {
+        cmd = postout;
+      }
+      cmd.push(outpath);
+      const proc = run({ cmd, cwd: dir });
+      const exitCode = await endProc(proc);
+      if (exitCode !== 0) {
+        throw Error(`Process ${cmd} exited with non-zero code: ${exitCode}`);
+      }
     }
   }
+};
+var isArrayOfStrings = (value) => {
+  if (Array.isArray(value) === false)
+    return false;
+  if (value.every((v) => typeof v === "string") === false)
+    return false;
+  return true;
 };
 var withoutShebang = (source) => {
   if (source.startsWith("#!")) {

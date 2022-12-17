@@ -2,7 +2,7 @@ import {jevkoml, jevkocfg, jevkodata, map, prep as prepdata, prettyFromJsonStr, 
 
 import {importDirective} from './importDirective.js'
 
-import {dirname, join, extname, basename, isAbsolute, readTextFileSync, readStdinText, writeTextFileSync, mkdirRecursiveSync, existsSync} from '../nonportable/deps.js'
+import {dirname, join, extname, basename, isAbsolute, readTextFileSync, readStdinText, writeTextFileSync, mkdirRecursiveSync, existsSync, run, endProc} from '../nonportable/deps.js'
 
 const defaultOptions = {
   platform: 'deno'
@@ -120,13 +120,35 @@ const write = async (result, options) => {
   // todo: console.log makes no sense in vscode interface
   if (output === undefined) defaultOutput(result)
   else {
-    if (isAbsolute(output)) {
-      await commit(output)
-    } else {
-      const outpath = join(dir, output)
-      await commit(outpath)
+    const outpath = isAbsolute(output)?
+      output: 
+      join(dir, output)
+    await commit(outpath)
+    if (options.postout) {
+      const {postout} = options
+      let cmd
+      if (typeof postout === 'string') {
+        cmd = [postout]
+      } else if (isArrayOfStrings(postout)) {
+        cmd = postout
+      }
+      cmd.push(outpath)
+      // todo: test different cases for cwd/dir
+      const proc = run({cmd, cwd: dir})
+      const exitCode = await endProc(proc)
+      // todo: better error reporting
+      if (exitCode !== 0) {
+        throw Error(`Process ${cmd} exited with non-zero code: ${exitCode}`)
+      }
     }
   }
+}
+
+// todo: extract?
+const isArrayOfStrings = value => {
+  if (Array.isArray(value) === false) return false
+  if (value.every(v => typeof v === 'string') === false) return false
+  return true
 }
 
 const withoutShebang = source => {
