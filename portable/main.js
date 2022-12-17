@@ -16,6 +16,7 @@ const formatToHandler = new Map([
   ['jevkomarkup', jevkoml],
   ['jm', jevkoml],
 
+  // todo: support options in jevkocfg or lose jevkocfg
   ['jevkocfg', jevkocfg],
   ['jevkoconfig', jevkocfg],
   ['jc', jevkocfg],
@@ -24,8 +25,12 @@ const formatToHandler = new Map([
   ['jd', jevkodata],
 ])
 
+const defaultFormatHandler_ = (format) => {
+  throw Error(`Unrecognized format: ${format}`)
+}
+
 // todo: don't do anything for unrecognized formats
-const recognizedFormats = formatToHandler.keys()
+const recognizedFormats = [...formatToHandler.keys()]
 
 export const main = async (argmap = {}) => {
   let {
@@ -57,31 +62,29 @@ export const main = async (argmap = {}) => {
     return
   }
 
-  // todo: don't do this and parsing for unrecognized file formats
+  // note: trying to extract options even for unrecognized formats -- one of the options might be "format"
   const {options: opts, source: src} = extractOptions(source)
 
   const options = Object.assign({}, defaultOptions, opts, argmap)
   {
+    const {format, defaultFormatHandler = defaultFormatHandler_} = options
+
+    // handle unrecognized formats
+    if (recognizedFormats.includes(format) === false) return defaultFormatHandler(format)
+
     const jevko = parseJevkoWithHeredocs(src)
 
     // resolve imports
     // note: could be made optional
     const preppedJevko = importDirective(jevko, options)
-    const {format} = options
     // if (format !== undefined) {
     //   const f = options.format
     //   if (f !== undefined && format !== f) throw Error(`declared format (${format}) inconsistent with command line format or file extension (${f})`)
     // }
+
+    const handler = formatToHandler.get(format)
     
-    let result
-    if (format === 'jevkoml') {
-      result = await jevkoml(preppedJevko, options)
-    } else if (format === 'jevkocfg') {
-      // todo: support options in jevkocfg or lose jevkocfg
-      result = jevkocfg(preppedJevko, options)
-    } else if (format === 'jevkodata') {
-      result = jevkodata(preppedJevko, options)
-    } else throw Error(`Unrecognized format: ${format}`)
+    let result = await handler(preppedJevko, options)
     
     await write(result, options)
   }  
@@ -182,24 +185,28 @@ const withoutShebang = source => {
 const extractOptions = source => {
   let depth = 0, a = 0
   let isEscaped = false
+
+  const noOptions = (msg) => ({
+    options: Object.create(null),
+    source,
+    msg,
+  })
+
   for (let i = 0; i < source.length; ++i) {
     const c = source[i]
     if (isEscaped) {
       if (['[', ']', '`'].includes(c)) {
         isEscaped = false
-      } else throw Error(`Unrecognized digraph: \`${c}`)
+      } else return noOptions(`Unrecognized digraph: \`${c}`)
 
     } else if (c === '[') {
       if (depth === 0) {
-        if (source.slice(0, i).trim() !== '') return {
-          options: Object.create(null),
-          source,
-        }
+        if (source.slice(0, i).trim() !== '') return noOptions()
         a = i + 1
       }
       ++depth
     } else if (c === ']') {
-      if (depth === 0) throw Error(`Unbalanced ] while parsing options!`)
+      if (depth === 0) return noOptions(`Unbalanced ] while parsing options!`)
       --depth
       if (depth === 0) {
         const optionsText = source.slice(a, i)
@@ -215,14 +222,11 @@ const extractOptions = source => {
       }
     } else if (c === '`') {
       if (depth === 0) {
-        return {
-          options: Object.create(null),
-          source,
-        }
+        return noOptions()
       }
       isEscaped = true
     }
   }
-  if (depth > 0) throw Error(`Error while parsing options: unexpected end before ${depth} brackets closed!`)
-  throw Error(`Error while parsing options!`)
+  if (depth > 0) return noOptions(`Error while parsing options: unexpected end before ${depth} brackets closed!`)
+  return noOptions(`Error while parsing options!`)
 }

@@ -1831,7 +1831,10 @@ var formatToHandler = /* @__PURE__ */ new Map([
   ["jevkodata", jevkodata],
   ["jd", jevkodata]
 ]);
-var recognizedFormats = formatToHandler.keys();
+var defaultFormatHandler_ = (format) => {
+  throw Error(`Unrecognized format: ${format}`);
+};
+var recognizedFormats = [...formatToHandler.keys()];
 var main = async (argmap = {}) => {
   let {
     input,
@@ -1856,18 +1859,13 @@ var main = async (argmap = {}) => {
   const { options: opts, source: src } = extractOptions(source);
   const options = Object.assign({}, defaultOptions, opts, argmap);
   {
+    const { format, defaultFormatHandler = defaultFormatHandler_ } = options;
+    if (recognizedFormats.includes(format) === false)
+      return defaultFormatHandler(format);
     const jevko = jevkoFromString1(src);
     const preppedJevko = importDirective(jevko, options);
-    const { format } = options;
-    let result;
-    if (format === "jevkoml") {
-      result = await jevkoml(preppedJevko, options);
-    } else if (format === "jevkocfg") {
-      result = jevkocfg(preppedJevko, options);
-    } else if (format === "jevkodata") {
-      result = jevkodata(preppedJevko, options);
-    } else
-      throw Error(`Unrecognized format: ${format}`);
+    const handler = formatToHandler.get(format);
+    let result = await handler(preppedJevko, options);
     await write(result, options);
   }
 };
@@ -1948,26 +1946,28 @@ var withoutShebang = (source) => {
 var extractOptions = (source) => {
   let depth = 0, a = 0;
   let isEscaped = false;
+  const noOptions = (msg) => ({
+    options: /* @__PURE__ */ Object.create(null),
+    source,
+    msg
+  });
   for (let i = 0; i < source.length; ++i) {
     const c = source[i];
     if (isEscaped) {
       if (["[", "]", "`"].includes(c)) {
         isEscaped = false;
       } else
-        throw Error(`Unrecognized digraph: \`${c}`);
+        return noOptions(`Unrecognized digraph: \`${c}`);
     } else if (c === "[") {
       if (depth === 0) {
         if (source.slice(0, i).trim() !== "")
-          return {
-            options: /* @__PURE__ */ Object.create(null),
-            source
-          };
+          return noOptions();
         a = i + 1;
       }
       ++depth;
     } else if (c === "]") {
       if (depth === 0)
-        throw Error(`Unbalanced ] while parsing options!`);
+        return noOptions(`Unbalanced ] while parsing options!`);
       --depth;
       if (depth === 0) {
         const optionsText = source.slice(a, i);
@@ -1981,17 +1981,14 @@ var extractOptions = (source) => {
       }
     } else if (c === "`") {
       if (depth === 0) {
-        return {
-          options: /* @__PURE__ */ Object.create(null),
-          source
-        };
+        return noOptions();
       }
       isEscaped = true;
     }
   }
   if (depth > 0)
-    throw Error(`Error while parsing options: unexpected end before ${depth} brackets closed!`);
-  throw Error(`Error while parsing options!`);
+    return noOptions(`Error while parsing options: unexpected end before ${depth} brackets closed!`);
+  return noOptions(`Error while parsing options!`);
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
