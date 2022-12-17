@@ -1821,6 +1821,17 @@ var defaultOptions = {
 };
 var defaultOutput_ = (text) => console.log(text);
 var defaultInput_ = async () => readStdinText();
+var formatToHandler = /* @__PURE__ */ new Map([
+  ["jevkoml", jevkoml],
+  ["jevkomarkup", jevkoml],
+  ["jm", jevkoml],
+  ["jevkocfg", jevkocfg],
+  ["jevkoconfig", jevkocfg],
+  ["jc", jevkocfg],
+  ["jevkodata", jevkodata],
+  ["jd", jevkodata]
+]);
+var recognizedFormats = formatToHandler.keys();
 var main = async (argmap = {}) => {
   let {
     input,
@@ -1850,8 +1861,7 @@ var main = async (argmap = {}) => {
     const { format } = options;
     let result;
     if (format === "jevkoml") {
-      const document = await jevkoml(preppedJevko, options);
-      result = document;
+      result = await jevkoml(preppedJevko, options);
     } else if (format === "jevkocfg") {
       result = jevkocfg(preppedJevko, options);
     } else if (format === "jevkodata") {
@@ -1970,6 +1980,12 @@ var extractOptions = (source) => {
         };
       }
     } else if (c === "`") {
+      if (depth === 0) {
+        return {
+          options: /* @__PURE__ */ Object.create(null),
+          source
+        };
+      }
       isEscaped = true;
     }
   }

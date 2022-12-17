@@ -11,6 +11,22 @@ const defaultOptions = {
 const defaultOutput_ = (text) => console.log(text)
 const defaultInput_ = async () => readStdinText()
 
+const formatToHandler = new Map([
+  ['jevkoml', jevkoml],
+  ['jevkomarkup', jevkoml],
+  ['jm', jevkoml],
+
+  ['jevkocfg', jevkocfg],
+  ['jevkoconfig', jevkocfg],
+  ['jc', jevkocfg],
+
+  ['jevkodata', jevkodata],
+  ['jd', jevkodata],
+])
+
+// todo: don't do anything for unrecognized formats
+const recognizedFormats = formatToHandler.keys()
+
 export const main = async (argmap = {}) => {
   let {
     input, 
@@ -59,8 +75,7 @@ export const main = async (argmap = {}) => {
     
     let result
     if (format === 'jevkoml') {
-      const document = await jevkoml(preppedJevko, options)
-      result = document
+      result = await jevkoml(preppedJevko, options)
     } else if (format === 'jevkocfg') {
       // todo: support options in jevkocfg or lose jevkocfg
       result = jevkocfg(preppedJevko, options)
@@ -124,7 +139,9 @@ const write = async (result, options) => {
     const outpath = isAbsolute(output)?
       output: 
       join(dir, output)
+    
     await commit(outpath)
+
     if (options.postout) {
       const {postout} = options
       let cmd
@@ -197,6 +214,12 @@ const extractOptions = source => {
         }
       }
     } else if (c === '`') {
+      if (depth === 0) {
+        return {
+          options: Object.create(null),
+          source,
+        }
+      }
       isEscaped = true
     }
   }
