@@ -1,0 +1,1 @@
+esbuild tests/node/main.js --bundle --platform=node | node

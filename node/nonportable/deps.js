@@ -52,18 +52,24 @@ export const endProc = async (proc) => {
 
 // todo: implement, test
 // https://nodejs.org/api/stream.html#class-streamwritable
-export const writeFullStdin = async (proc, bytes) => {
-  throw Error("NODEJS writeFullStdin NOT IMPLEMENTED")
+export const writeFullStdin = async (proc, text) => {
+  const {stdin} = proc
+
+  stdin.setDefaultEncoding('utf-8')
+
+  stdin.end(text)
 }
 
 // todo: implement (ret bytes), test
 // https://nodejs.org/api/stream.html#class-streamreadable
 export const readFullStdout = async (proc) => {
-  throw Error("NODEJS readFullStdout NOT IMPLEMENTED")
+  const {stdout} = proc
 
-  // let ret = ''
+  stdout.setEncoding('utf8')
 
-  // proc.stdout.on('data', (data) => {
-  //   console.log(`stdout: ${data}`);
-  // });
+  let ret = ''
+  for await (const chunk of stdout) {
+    ret += chunk
+  }
+  return ret
 }
