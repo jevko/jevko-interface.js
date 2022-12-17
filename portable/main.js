@@ -41,6 +41,7 @@ export const main = async (argmap = {}) => {
     return
   }
 
+  // todo: don't do this and parsing for unrecognized file formats
   const {options: opts, source: src} = extractOptions(source)
 
   const options = Object.assign({}, defaultOptions, opts, argmap)
@@ -160,11 +161,18 @@ const withoutShebang = source => {
   return source
 }
 
+// todo: perhaps use a partial streaming parser instead -- this won't allow heredocs in options (only classic Jevko)
 const extractOptions = source => {
   let depth = 0, a = 0
+  let isEscaped = false
   for (let i = 0; i < source.length; ++i) {
     const c = source[i]
-    if (c === '[') {
+    if (isEscaped) {
+      if (['[', ']', '`'].includes(c)) {
+        isEscaped = false
+      } else throw Error(`Unrecognized digraph: \`${c}`)
+
+    } else if (c === '[') {
       if (depth === 0) {
         if (source.slice(0, i).trim() !== '') return {
           options: Object.create(null),
@@ -188,6 +196,8 @@ const extractOptions = source => {
           source: source.slice(i + 1)
         }
       }
+    } else if (c === '`') {
+      isEscaped = true
     }
   }
   if (depth > 0) throw Error(`Error while parsing options: unexpected end before ${depth} brackets closed!`)

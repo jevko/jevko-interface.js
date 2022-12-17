@@ -1937,9 +1937,15 @@ var withoutShebang = (source) => {
 };
 var extractOptions = (source) => {
   let depth = 0, a = 0;
+  let isEscaped = false;
   for (let i = 0; i < source.length; ++i) {
     const c = source[i];
-    if (c === "[") {
+    if (isEscaped) {
+      if (["[", "]", "`"].includes(c)) {
+        isEscaped = false;
+      } else
+        throw Error(`Unrecognized digraph: \`${c}`);
+    } else if (c === "[") {
       if (depth === 0) {
         if (source.slice(0, i).trim() !== "")
           return {
@@ -1963,6 +1969,8 @@ var extractOptions = (source) => {
           source: source.slice(i + 1)
         };
       }
+    } else if (c === "`") {
+      isEscaped = true;
     }
   }
   if (depth > 0)
