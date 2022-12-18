@@ -11,6 +11,7 @@ style [
 
 # [anatomy of a jevko]
 
+-[todo: sort out directive trimming and highlighting, particularly in .jevkoml]
 /import [markup2.part2.jevkoml]
 
 p [We shall call a specific instance of a Jevko tree a \jevko[.[inline]jevko].]
