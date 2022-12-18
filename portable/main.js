@@ -2,7 +2,7 @@ import {jevkoml, jevkocfg, jevkodata, map, prep as prepdata, prettyFromJsonStr, 
 
 import {importDirective} from './importDirective.js'
 
-import {dirname, join, extname, basename, isAbsolute, readTextFileSync, readStdinText, writeTextFileSync, mkdirRecursiveSync, existsSync, run, endProc} from '../nonportable/deps.js'
+import {dirname, join, extname, basename, isAbsolute, readTextFileSync, readStdinText, writeTextFileSync, mkdirRecursiveSync, existsSync, run, endProc, readFullStdoutText, writeFullStdinText} from '../nonportable/deps.js'
 
 const defaultOptions = {
   platform: 'deno'
@@ -11,10 +11,31 @@ const defaultOptions = {
 const defaultOutput_ = (text) => console.log(text)
 const defaultInput_ = async () => readStdinText()
 
+const markdown = (jevko) => {
+  const {tag, suffix, ...rest} = jevko
+  const proc = run({
+    cmd: ['pandoc', '-f', 'markdown', '-t', 'html']
+  })
+  writeFullStdinText(proc, suffix)
+  return readFullStdoutText(proc)
+}
+
+const extendedJevkoml = (jevko, opts) => {
+  return jevkoml(jevko, {
+    ...opts,
+		extensions: {
+      elements: {
+        markdown,
+        md: markdown,
+      }
+    }
+  })
+}
+
 const formatToHandler = new Map([
-  ['jevkoml', jevkoml],
-  ['jevkomarkup', jevkoml],
-  ['jm', jevkoml],
+  ['jevkoml', extendedJevkoml],
+  ['jevkomarkup', extendedJevkoml],
+  ['jm', extendedJevkoml],
 
   // todo: support options in jevkocfg or lose jevkocfg
   ['jevkocfg', jevkocfg],

@@ -445,8 +445,17 @@ var parseHtmlJevko = (source, dir = ".") => {
   return prep(jevkoFromString(source), dir);
 };
 var jevkoml = async (preppedjevko, options) => {
-  const { dir, root, prepend } = options;
+  const { dir, root, prepend, extensions } = options;
   const document = prep(preppedjevko, dir);
+  if (extensions !== void 0) {
+    const { elements } = extensions;
+    if (elements !== void 0) {
+      const entries = Object.entries(elements);
+      for (const [k, v] of entries) {
+        ctx.set(k, v);
+      }
+    }
+  }
   const { attrs, jevko } = makeTop(document);
   if (root === void 0) {
     if (attrs.length > 0)
@@ -1748,6 +1757,20 @@ var endProc = async (proc) => {
     });
   });
 };
+var writeFullStdinText = async (proc, text) => {
+  const { stdin } = proc;
+  stdin.setDefaultEncoding("utf-8");
+  stdin.end(text);
+};
+var readFullStdoutText = async (proc) => {
+  const { stdout } = proc;
+  stdout.setEncoding("utf8");
+  let ret = "";
+  for await (const chunk of stdout) {
+    ret += chunk;
+  }
+  return ret;
+};
 
 // node/portable/importDirective.js
 var importDirective = (jevko, options) => {
@@ -1821,10 +1844,29 @@ var defaultOptions = {
 };
 var defaultOutput_ = (text) => console.log(text);
 var defaultInput_ = async () => readStdinText();
+var markdown = (jevko) => {
+  const { tag, suffix, ...rest } = jevko;
+  const proc = run({
+    cmd: ["pandoc", "-f", "markdown", "-t", "html"]
+  });
+  writeFullStdinText(proc, suffix);
+  return readFullStdoutText(proc);
+};
+var extendedJevkoml = (jevko, opts) => {
+  return jevkoml(jevko, {
+    ...opts,
+    extensions: {
+      elements: {
+        markdown,
+        md: markdown
+      }
+    }
+  });
+};
 var formatToHandler = /* @__PURE__ */ new Map([
-  ["jevkoml", jevkoml],
-  ["jevkomarkup", jevkoml],
-  ["jm", jevkoml],
+  ["jevkoml", extendedJevkoml],
+  ["jevkomarkup", extendedJevkoml],
+  ["jm", extendedJevkoml],
   ["jevkocfg", jevkocfg],
   ["jevkoconfig", jevkocfg],
   ["jc", jevkocfg],
