@@ -1844,12 +1844,12 @@ var defaultOptions = {
 };
 var defaultOutput_ = (text) => console.log(text);
 var defaultInput_ = async () => readStdinText();
-var markdown = (jevko) => {
+var markdown = async (jevko) => {
   const { tag, suffix, ...rest } = jevko;
   const proc = run({
     cmd: ["pandoc", "-f", "markdown", "-t", "html"]
   });
-  writeFullStdinText(proc, suffix);
+  await writeFullStdinText(proc, suffix);
   return readFullStdoutText(proc);
 };
 var extendedJevkoml = (jevko, opts) => {

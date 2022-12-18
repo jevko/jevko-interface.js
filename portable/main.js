@@ -11,12 +11,14 @@ const defaultOptions = {
 const defaultOutput_ = (text) => console.log(text)
 const defaultInput_ = async () => readStdinText()
 
-const markdown = (jevko) => {
+// todo?: perhaps md|markdown `'...' ... '...' should be a markdown heredoc also
+const markdown = async (jevko) => {
   const {tag, suffix, ...rest} = jevko
+  // todo: error checking, etc
   const proc = run({
     cmd: ['pandoc', '-f', 'markdown', '-t', 'html']
   })
-  writeFullStdinText(proc, suffix)
+  await writeFullStdinText(proc, suffix)
   return readFullStdoutText(proc)
 }
 
