@@ -4,6 +4,9 @@ import {importDirective} from './importDirective.js'
 
 import {dirname, join, extname, basename, isAbsolute, readTextFileSync, readStdinText, writeTextFileSync, mkdirRecursiveSync, existsSync, run, endProc, readFullStdoutText, writeFullStdinText} from '../nonportable/deps.js'
 
+// note: pretty hacky
+import staticJson from './static.json' assert {type: 'json'}
+
 const defaultOptions = {
   platform: 'deno'
 }
@@ -11,18 +14,24 @@ const defaultOptions = {
 const defaultOutput_ = (text) => console.log(text)
 const defaultInput_ = async () => readStdinText()
 
-// todo?: perhaps md|markdown `'...' ... '...' should be a markdown heredoc also
-const markdown = async (jevko) => {
-  const {tag, suffix, ...rest} = jevko
-  // todo: error checking, etc
-  const proc = run({
-    cmd: ['pandoc', '-f', 'markdown', '-t', 'html']
-  })
-  await writeFullStdinText(proc, suffix)
-  return readFullStdoutText(proc)
-}
-
 const extendedJevkoml = (jevko, opts) => {
+  // note: pretty hacky
+  let cssIncluded = false
+  // todo?: perhaps md|markdown `'...' ... '...' should be a markdown heredoc also
+  const markdown = async (jevko) => {
+    const {tag, suffix, ...rest} = jevko
+    // todo: error checking, etc
+    const proc = run({
+      cmd: ['pandoc', '-f', 'markdown', '-t', 'html']
+    })
+    await writeFullStdinText(proc, suffix)
+    if (cssIncluded === false) {
+      cssIncluded = true
+      // todo: perhaps decide on a highlight theme based on opts
+      return `<style>${staticJson['pandoc-highlighting.css']}</style>` + await readFullStdoutText(proc)
+    }
+    return readFullStdoutText(proc)
+  }
   return jevkoml(jevko, {
     ...opts,
 		extensions: {
