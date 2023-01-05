@@ -1,4 +1,4 @@
-import {jevkoml, jevkocfg, jevkodata, map, prep as prepdata, prettyFromJsonStr, parseJevkoWithHeredocs} from '../bundlable/deps.b.js'
+import {jevkoml, jevkocfg, jevkodata, map, prep as prepdata, prettyFromJsonStr, parseJevkoWithHeredocs, fromXmlStr} from '../bundlable/deps.b.js'
 
 import {importDirective} from './importDirective.js'
 
@@ -92,6 +92,10 @@ export const main = async (argmap = {}) => {
     const result = prettyFromJsonStr(source)
     write(result, argmap)
     return
+  } else if (['html', 'xml', 'xhtml'].includes(argmap.format)) {
+    const result = fromXmlStr(source)
+    write(result, argmap)
+    return
   }
 
   // note: trying to extract options even for unrecognized formats -- one of the options might be "format"
@@ -142,6 +146,8 @@ const write = async (result, options) => {
         output = name + '.json'
       } else if (format === 'json') {
         output = name + '.jevkodata'
+      } else if (['html', 'xml', 'xhtml'].includes(format)) {
+        output = name + '.jevkoml'
       }
     }
   }

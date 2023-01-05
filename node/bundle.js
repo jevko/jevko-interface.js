@@ -193,6 +193,998 @@ var stringToHeredoc = (str, tag, delimiters) => {
   }
   return `${delimiters.escaper}${tok}${stret}`;
 };
+var fnlxml = (next) => {
+  const ccbs = /* @__PURE__ */ new Set();
+  const registerChunkCb = (cb) => {
+    ccbs.add(cb);
+    return () => {
+      return ccbs.delete(cb);
+    };
+  };
+  let currentChunk;
+  const getCurrentChunk = () => {
+    return currentChunk;
+  };
+  const seq = (its, debugName) => (ii = null) => {
+    let p = 0;
+    let it = its[p](ii);
+    const eat = (c, i) => {
+      const [sname, j] = it(c, i);
+      if (sname === "fail")
+        return [
+          "fail",
+          j
+        ];
+      if (sname === "done") {
+        p += 1;
+        if (p >= its.length) {
+          return [
+            "done",
+            j
+          ];
+        }
+        it = its[p](j);
+      }
+      return [
+        "pending",
+        j
+      ];
+    };
+    return eat;
+  };
+  const alt = (its, debugName) => (ii = null) => {
+    let p = 0;
+    let it = its[p](ii);
+    const eat = (c, i) => {
+      const s = it(c, i);
+      const [sname, j] = s;
+      if (sname === "fail") {
+        p += 1;
+        if (p >= its.length) {
+          return [
+            "fail",
+            j
+          ];
+        }
+        it = its[p](ii);
+        return [
+          "pending",
+          ii
+        ];
+      }
+      return [
+        sname,
+        j
+      ];
+    };
+    return eat;
+  };
+  const zom = (itc) => (ii = null) => {
+    let it = itc(ii);
+    const eat = (c, i) => {
+      if (c === void 0) {
+        return [
+          "done",
+          i
+        ];
+      }
+      const [sname, j] = it(c, i);
+      if (sname === "fail") {
+        return [
+          "done",
+          ii
+        ];
+      }
+      if (sname === "done") {
+        ii = j;
+        it = itc(j);
+      }
+      return [
+        "pending",
+        j
+      ];
+    };
+    return eat;
+  };
+  const oom = (itc, debugName) => (ii = null) => {
+    let cnt = 0;
+    let it = itc(ii);
+    const eat = (c, i) => {
+      const [sname, j] = it(c, i);
+      if (sname === "fail") {
+        if (cnt === 0)
+          return [
+            "fail",
+            j
+          ];
+        return [
+          "done",
+          ii
+        ];
+      }
+      if (sname === "done") {
+        ii = j;
+        cnt += 1;
+        it = itc(ii);
+      }
+      return [
+        "pending",
+        j
+      ];
+    };
+    return eat;
+  };
+  const opt = (itc) => (ii = null) => {
+    let it = itc(ii);
+    const eat = (c, i) => {
+      if (ii === null)
+        ii = i;
+      const [sname, j] = it(c, i);
+      if (sname === "fail") {
+        return [
+          "done",
+          ii
+        ];
+      }
+      if (sname === "done")
+        return [
+          "done",
+          j
+        ];
+      return [
+        "pending",
+        j
+      ];
+    };
+    return eat;
+  };
+  const zomCharsExcludingToken = (token) => (ii) => {
+    const makeTokenMatcher = lit(token);
+    const itc = Char;
+    let it = Char(ii);
+    const indexToTokenMatcher = /* @__PURE__ */ new Map();
+    return (c, i) => {
+      indexToTokenMatcher.set(i, makeTokenMatcher(ii));
+      for (const [index, matcher] of indexToTokenMatcher) {
+        const [sname, j] = matcher(c, i);
+        if (sname === "fail")
+          indexToTokenMatcher.delete(index);
+        else if (sname === "done") {
+          return [
+            sname,
+            j - token.length
+          ];
+        }
+      }
+      const [sname1, j1] = it(c, i);
+      if (sname1 === "fail") {
+        return [
+          "done",
+          ii
+        ];
+      } else if (sname1 === "done") {
+        ii = j1;
+        it = itc(ii);
+      }
+      return [
+        "pending",
+        j1
+      ];
+    };
+  };
+  const not = (chars) => (ii) => (c, i) => {
+    if (chars.includes(c))
+      return [
+        "fail",
+        i
+      ];
+    return [
+      "done",
+      i + 1
+    ];
+  };
+  const __char = (h) => (ii) => {
+    return (c, i) => {
+      if (h === c)
+        return [
+          "done",
+          i + 1
+        ];
+      return [
+        "fail",
+        i
+      ];
+    };
+  };
+  const range = (a, b) => (ii) => (c, i) => {
+    if (c >= a && c <= b)
+      return [
+        "done",
+        i + 1
+      ];
+    return [
+      "fail",
+      i
+    ];
+  };
+  const ranges = (...ranges3) => (ii) => (c, i) => {
+    for (const [a, b] of ranges3) {
+      if (c >= a && c <= b)
+        return [
+          "done",
+          i + 1
+        ];
+    }
+    return [
+      "fail",
+      i
+    ];
+  };
+  const ranges2 = (...ranges3) => (ii) => (c, i) => {
+    for (const p of ranges3) {
+      if (Array.isArray(p)) {
+        const [a, b] = p;
+        if (c >= a && c <= b)
+          return [
+            "done",
+            i + 1
+          ];
+      } else if (c === p)
+        return [
+          "done",
+          i + 1
+        ];
+    }
+    return [
+      "fail",
+      i
+    ];
+  };
+  const codePointRanges = (...ranges3) => (ii) => (c, i) => {
+    const ccp = c.codePointAt(0);
+    for (const p of ranges3) {
+      if (Array.isArray(p)) {
+        const [a, b] = p;
+        if (ccp >= a && ccp <= b)
+          return [
+            "done",
+            i + 1
+          ];
+      } else if (ccp === p)
+        return [
+          "done",
+          i + 1
+        ];
+    }
+    return [
+      "fail",
+      i
+    ];
+  };
+  const lit = (str) => (ii) => {
+    let index = 0;
+    return (c, i) => {
+      if (str[index] === c) {
+        ++index;
+        if (index >= str.length)
+          return [
+            "done",
+            i + 1
+          ];
+        return [
+          "pending",
+          i + 1
+        ];
+      }
+      return [
+        "fail",
+        i
+      ];
+    };
+  };
+  const emits = (name, fn) => (ii) => {
+    let chunks = [
+      getCurrentChunk()
+    ];
+    const uccb = registerChunkCb((chunk) => {
+      chunks.push(chunk);
+    });
+    const ondone = (jj) => {
+      const lastChunk = chunks.at(-1);
+      const lcl = lastChunk.length;
+      const combined = chunks.join("");
+      const endi = -lcl + jj;
+      const slice = combined.slice(ii, endi === 0 ? void 0 : endi);
+      chunks = [];
+      next.emit?.(name, slice);
+      return uccb();
+    };
+    let it = fn(ii);
+    return (c, i) => {
+      const ret = it(c, i);
+      if (ret[0] === "done") {
+        const r = ondone(ret[1]);
+        if (r === false)
+          throw Error("oops");
+      }
+      return ret;
+    };
+  };
+  const todo = lit;
+  const S = oom(alt([
+    __char(" "),
+    __char("	"),
+    __char("\r"),
+    __char("\n")
+  ], "SSSSSSSSSSSs"), "SSSSSS");
+  const Eq = seq([
+    opt(S),
+    __char("="),
+    opt(S)
+  ]);
+  const VersionNum = seq([
+    lit("1."),
+    oom(range("0", "9"))
+  ]);
+  const VersionInfo = seq([
+    S,
+    lit("version"),
+    Eq,
+    alt([
+      seq([
+        __char("'"),
+        VersionNum,
+        __char("'")
+      ]),
+      seq([
+        __char('"'),
+        VersionNum,
+        __char('"')
+      ])
+    ])
+  ]);
+  const EncName = seq([
+    ranges([
+      "A",
+      "Z"
+    ], [
+      "a",
+      "z"
+    ]),
+    zom(alt([
+      ranges([
+        "A",
+        "Z"
+      ], [
+        "a",
+        "z"
+      ], [
+        "0",
+        "9"
+      ]),
+      __char("."),
+      __char("_"),
+      __char("-")
+    ], "ENNENENNENEN"))
+  ], "EncName");
+  const EncodingDecl = seq([
+    S,
+    lit("encoding"),
+    Eq,
+    alt([
+      seq([
+        __char("'"),
+        EncName,
+        __char("'")
+      ]),
+      seq([
+        __char('"'),
+        EncName,
+        __char('"')
+      ])
+    ])
+  ]);
+  const SDDecl = seq([
+    S,
+    lit("standalone"),
+    Eq,
+    alt([
+      seq([
+        __char("'"),
+        alt([
+          lit("yes"),
+          lit("no")
+        ]),
+        __char("'")
+      ]),
+      seq([
+        __char('"'),
+        alt([
+          lit("yes"),
+          lit("no")
+        ]),
+        __char('"')
+      ])
+    ])
+  ]);
+  const XMLDecl = seq([
+    lit("<?xml"),
+    VersionInfo,
+    opt(EncodingDecl),
+    opt(SDDecl),
+    opt(S),
+    lit("?>")
+  ], "XMLDEcl");
+  const NameStartChar = ranges2(":", [
+    "A",
+    "Z"
+  ], "_", [
+    "a",
+    "z"
+  ], [
+    "\xC0",
+    "\xD6"
+  ], [
+    "\xD8",
+    "\xF6"
+  ], [
+    "\xF8",
+    "\u02FF"
+  ], [
+    "\u0370",
+    "\u037D"
+  ], [
+    "\u037F",
+    "\u1FFF"
+  ], [
+    "\u200C",
+    "\u200D"
+  ], [
+    "\u2070",
+    "\u218F"
+  ], [
+    "\u2C00",
+    "\u2FEF"
+  ], [
+    "\u3001",
+    "\uD7FF"
+  ], [
+    "\uF900",
+    "\uFDCF"
+  ], [
+    "\uFDF0",
+    "\uFFFD"
+  ], [
+    "\u{10000}",
+    "\u{EFFFF}"
+  ]);
+  const NameChar = alt([
+    NameStartChar,
+    __char("-"),
+    __char("."),
+    range("0", "9"),
+    __char("\xB7"),
+    range("\u0300", "\u036F"),
+    range("\u203F", "\u2040")
+  ]);
+  const Name = seq([
+    NameStartChar,
+    zom(NameChar)
+  ], "Name");
+  const SystemLiteral = alt([
+    seq([
+      __char('"'),
+      zom(not('"')),
+      __char('"')
+    ]),
+    seq([
+      __char("'"),
+      zom(not("'")),
+      __char("'")
+    ])
+  ]);
+  const piclr = [];
+  const piclrstr = `-'()+,./:=?;!*#@$_%`;
+  for (let i = 0; i < piclrstr.length; ++i) {
+    piclr.push(piclrstr.codePointAt(i));
+  }
+  const picaz = [
+    "a".codePointAt(0),
+    "z".codePointAt(0)
+  ];
+  const picAZ = [
+    "A".codePointAt(0),
+    "Z".codePointAt(0)
+  ];
+  const pic09 = [
+    "0".codePointAt(0),
+    "9".codePointAt(0)
+  ];
+  const PubidChar = codePointRanges(32, 13, 10, picaz, picAZ, pic09, ...piclr);
+  const PubidChar2 = codePointRanges(32, 13, 10, picaz, picAZ, pic09, ...piclr.filter((cp2) => cp2 !== "'".codePointAt(0)));
+  const PubidLiteral = alt([
+    seq([
+      __char('"'),
+      zom(PubidChar),
+      __char('"')
+    ]),
+    seq([
+      __char("'"),
+      zom(PubidChar2),
+      __char("'")
+    ])
+  ]);
+  const ExternalID = alt([
+    seq([
+      lit("SYSTEM"),
+      S,
+      SystemLiteral
+    ]),
+    seq([
+      lit("PUBLIC"),
+      S,
+      PubidLiteral,
+      S,
+      SystemLiteral
+    ])
+  ]);
+  const Mixed = alt([
+    seq([
+      __char("("),
+      opt(S),
+      lit("#PCDATA"),
+      zom(seq([
+        opt(S),
+        __char("|"),
+        opt(S),
+        Name
+      ])),
+      opt(S),
+      lit(")*")
+    ]),
+    seq([
+      __char("("),
+      opt(S),
+      lit("#PCDATA"),
+      opt(S),
+      __char(")")
+    ])
+  ]);
+  const CATCHALL = seq([
+    lit("<!"),
+    zom(not(">")),
+    __char(">")
+  ]);
+  const cp = (ii) => seq([
+    alt([
+      Name,
+      choice,
+      Seq
+    ]),
+    opt(alt([
+      __char("?"),
+      __char("*"),
+      __char("+")
+    ]))
+  ])(ii);
+  const choice = seq([
+    __char("("),
+    opt(S),
+    cp,
+    oom(seq([
+      opt(S),
+      __char("|"),
+      opt(S),
+      cp
+    ])),
+    opt(S),
+    __char(")")
+  ]);
+  const Seq = seq([
+    __char("("),
+    opt(S),
+    cp,
+    zom(seq([
+      opt(S),
+      __char(","),
+      opt(S),
+      cp
+    ])),
+    opt(S),
+    __char(")")
+  ]);
+  const children1 = seq([
+    alt([
+      choice,
+      Seq
+    ]),
+    opt(alt([
+      __char("?"),
+      __char("*"),
+      __char("+")
+    ]))
+  ]);
+  const contentspec = alt([
+    lit("EMPTY"),
+    lit("ANY"),
+    Mixed,
+    children1
+  ]);
+  const elementdecl = seq([
+    lit("<!ELEMENT"),
+    S,
+    Name,
+    S,
+    contentspec,
+    opt(S),
+    __char(">")
+  ]);
+  const AttlistDecl = todo("AttlistDecl");
+  const PEReference = seq([
+    __char("%"),
+    Name,
+    __char(";")
+  ]);
+  const EntityRef = seq([
+    __char("&"),
+    Name,
+    __char(";")
+  ]);
+  const CharRef = alt([
+    seq([
+      lit("&#"),
+      oom(range("0", "9")),
+      __char(";")
+    ]),
+    seq([
+      lit("&#x"),
+      oom(ranges([
+        "0",
+        "9"
+      ], [
+        "a",
+        "f"
+      ], [
+        "A",
+        "F"
+      ])),
+      __char(";")
+    ])
+  ]);
+  const Reference = emits("Reference", alt([
+    EntityRef,
+    CharRef
+  ]));
+  const EntityValue = alt([
+    seq([
+      __char('"'),
+      zom(alt([
+        not('%&"'),
+        PEReference,
+        Reference
+      ], "(((((((DEBUG))))))))evn")),
+      __char('"')
+    ]),
+    seq([
+      __char("'"),
+      zom(alt([
+        not("%&'"),
+        PEReference,
+        Reference
+      ], "((((((((((((((((((((")),
+      __char("'")
+    ])
+  ]);
+  const NDataDecl = todo("NDataDecl");
+  const EntityDef = alt([
+    EntityValue,
+    seq([
+      ExternalID,
+      opt(NDataDecl)
+    ])
+  ]);
+  const GEDecl = seq([
+    lit("<!ENTITY"),
+    S,
+    Name,
+    S,
+    EntityDef,
+    opt(S),
+    __char(">")
+  ]);
+  const PEDef = alt([
+    EntityValue,
+    ExternalID
+  ]);
+  const PEDecl = seq([
+    lit("<!ENTITY"),
+    S,
+    __char("%"),
+    S,
+    Name,
+    S,
+    PEDef,
+    opt(S),
+    __char(">")
+  ]);
+  const EntityDecl = alt([
+    GEDecl,
+    PEDecl
+  ]);
+  const NotationDecl = todo("NotationDecl");
+  const PITarget = Name;
+  const PI = seq([
+    lit("<?"),
+    PITarget,
+    opt(seq([
+      S,
+      zomCharsExcludingToken("?>")
+    ])),
+    lit("?>")
+  ], "PI");
+  const Comment = emits("Comment", seq([
+    lit("<!--"),
+    zomCharsExcludingToken("-->"),
+    lit("-->")
+  ], "COMMENT"));
+  const markupdecl = alt([
+    elementdecl,
+    AttlistDecl,
+    EntityDecl,
+    NotationDecl,
+    PI,
+    Comment,
+    CATCHALL
+  ]);
+  const DeclSep = alt([
+    PEReference,
+    S
+  ]);
+  const intSubset = zom(alt([
+    markupdecl,
+    DeclSep
+  ], "IIIIIIIIIIIIII"));
+  const doctypedecl = seq([
+    lit("<!DOCTYPE"),
+    S,
+    Name,
+    opt(seq([
+      S,
+      ExternalID
+    ])),
+    opt(S),
+    opt(seq([
+      __char("["),
+      intSubset,
+      __char("]"),
+      opt(S)
+    ])),
+    __char(">")
+  ]);
+  const Misc = alt([
+    Comment,
+    PI,
+    S
+  ], "MISC");
+  const prolog = seq([
+    opt(XMLDecl),
+    zom(Misc),
+    opt(seq([
+      doctypedecl,
+      zom(Misc)
+    ]))
+  ], "PROLOG");
+  const QAC = emits("AttValue", zom(not('<&"')));
+  const AAC = emits("AttValue", zom(not("<&'")));
+  const AttValue = alt([
+    seq([
+      __char('"'),
+      seq([
+        QAC,
+        zom(seq([
+          Reference,
+          QAC
+        ]))
+      ]),
+      __char('"')
+    ]),
+    seq([
+      __char("'"),
+      seq([
+        AAC,
+        zom(seq([
+          Reference,
+          AAC
+        ]))
+      ]),
+      __char("'")
+    ])
+  ]);
+  const Attribute = emits("Attribute", seq([
+    emits("AttName", Name),
+    Eq,
+    AttValue
+  ]));
+  const STag1 = emits("STag1", seq([
+    __char("<"),
+    emits("STagName", Name),
+    zom(seq([
+      S,
+      Attribute
+    ])),
+    opt(S)
+  ]));
+  const STagC = emits("STagC", __char(">"));
+  const EETagC = emits("EETagC", lit("/>"));
+  const ETag = emits("ETag", seq([
+    lit("</"),
+    emits("ETagName", Name),
+    opt(S),
+    __char(">")
+  ]));
+  const CharData = emits("CharData", zom(not("<&")));
+  const element = (ii) => seq([
+    STag1,
+    alt([
+      EETagC,
+      seq([
+        STagC,
+        content,
+        ETag
+      ])
+    ])
+  ])(ii);
+  const CData = emits("CData", zomCharsExcludingToken("]]>"));
+  const CDSect = seq([
+    emits("openCData", lit("<![CDATA[")),
+    CData,
+    emits("closeCData", lit("]]>"))
+  ]);
+  const content = emits("content", seq([
+    opt(CharData),
+    zom(seq([
+      alt([
+        element,
+        Reference,
+        CDSect,
+        PI,
+        Comment
+      ]),
+      opt(CharData)
+    ]))
+  ]));
+  const document = seq([
+    prolog,
+    element,
+    zom(Misc)
+  ], "DOCUMNET");
+  const Char = codePointRanges(9, 10, 13, [
+    32,
+    55295
+  ], [
+    57344,
+    65533
+  ], [
+    65536,
+    1114111
+  ]);
+  let status = [
+    "initial",
+    0
+  ], i1 = 0;
+  const start = document(0);
+  const iter = wrapIter();
+  i1 = 0;
+  return {
+    chunk(str) {
+      currentChunk = str;
+      for (const cb of ccbs) {
+        cb(str);
+      }
+      iter.iter(str);
+      while (true) {
+        if (status[0] === "done")
+          throw Error(`Done too early ${i1} ${str.slice(i1)}`);
+        const { done, value } = iter.next();
+        if (done) {
+          iter.pop();
+          break;
+        }
+        const c = value;
+        status = start(c, i1);
+        if (status[0] === "fail")
+          throw Error(`Parsing failed: ${status}`);
+        const d = status[1] - i1;
+        if (d <= 0)
+          iter.rewind(d - 1);
+        i1 = status[1];
+      }
+    },
+    end() {
+      status = start(void 0, i1);
+      const [sname, c] = status;
+      if (sname === "done")
+        return next.end?.();
+      throw Error(`Unexpected end status: ${sname}`);
+    }
+  };
+};
+var wrapIter = (maxbuflen = 256) => {
+  let iter;
+  const buf = [];
+  let rewindex = 0;
+  return {
+    debug() {
+      console.log(iter, buf, rewindex);
+    },
+    iter(str) {
+      iter = str[Symbol.iterator]();
+    },
+    pop() {
+      buf.pop();
+    },
+    next() {
+      if (rewindex < 0)
+        return buf.at(rewindex++);
+      const next = iter.next();
+      if (buf.length > maxbuflen)
+        buf.shift();
+      buf.push(next);
+      return next;
+    },
+    rewind(d) {
+      rewindex += d;
+      if (buf.length + rewindex < 0)
+        throw Error(`Can't rewind beyond buffer length (${buf.length}, max: ${maxbuflen})!`);
+    }
+  };
+};
+var resolveEntity = (ent) => {
+  if (ent === "&lt;")
+    return "<";
+  if (ent === "&gt;")
+    return ">";
+  if (ent === "&quot;")
+    return '"';
+  if (ent === "&apos;")
+    return "'";
+  if (ent === "&amp;")
+    return "&";
+  if (ent === "&nbsp;")
+    return "\xA0";
+  if (ent === "&#39;")
+    return "9";
+  throw Error(`Unknown entity: ${ent}`);
+};
+var fromXmlStr = (str) => {
+  let ret = "";
+  const stream = fnlxml({
+    emit(name, str_) {
+      const str2 = escape(str_);
+      if (name === "STagName")
+        ret += `\\${str2} [`;
+      else if (name === "AttValue")
+        ret += str2;
+      else if (name === "Reference")
+        ret += resolveEntity(str2);
+      else if (name === "Attribute")
+        ret += `]`;
+      else if (name === "ETagName")
+        ret += `]`;
+      else if (name === "EETagC")
+        ret += `]`;
+      else if (name === "CData")
+        ret += str2;
+      else if (name === "CharData")
+        ret += str2;
+      else if (name === "AttName")
+        ret += `${str2}=[`;
+    }
+  });
+  stream.chunk(str);
+  stream.end();
+  return ret;
+};
 var breakPrefix = (prefix) => {
   let i = prefix.length - 1;
   for (; i >= 0; --i) {
@@ -201,7 +1193,7 @@ var breakPrefix = (prefix) => {
       break;
     }
   }
-  if (i > 0) {
+  if (i >= 0) {
     const text = prefix.slice(0, i);
     const tag = prefix.slice(i + 1).trim();
     return [
@@ -280,7 +1272,7 @@ var toHtml = async (jevko) => {
     const maker = ctx.get(prefix) ?? makeTag(prefix);
     ret += await maker(jevko1);
   }
-  return ret + htmlEscape(suffix.trimEnd());
+  return ret + htmlEscape(suffix);
 };
 var cdata = (text) => htmlEscape(text);
 var defaultHighlighter = cdata;
@@ -1921,6 +2913,10 @@ var main = async (argmap = {}) => {
     const result = prettyFromJsonStr(source);
     write(result, argmap);
     return;
+  } else if (["html", "xml", "xhtml"].includes(argmap.format)) {
+    const result = fromXmlStr(source);
+    write(result, argmap);
+    return;
   }
   const { options: opts, source: src } = extractOptions(source);
   const options = Object.assign({}, defaultOptions, opts, argmap);
@@ -1951,6 +2947,8 @@ var write = async (result, options) => {
         output = name + ".json";
       } else if (format === "json") {
         output = name + ".jevkodata";
+      } else if (["html", "xml", "xhtml"].includes(format)) {
+        output = name + ".jevkoml";
       }
     }
   }
