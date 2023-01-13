@@ -1152,8 +1152,13 @@ var resolveEntity = (ent) => {
     return "&";
   if (ent === "&nbsp;")
     return "\xA0";
-  if (ent === "&#39;")
-    return "9";
+  if (ent.startsWith("&#x")) {
+    const num = Number.parseInt(ent.slice(3, -1), 16);
+    return String.fromCodePoint(num);
+  }
+  if (ent.startsWith("&#")) {
+    return String.fromCodePoint(Number.parseInt(ent.slice(2, -1)));
+  }
   throw Error(`Unknown entity: ${ent}`);
 };
 var fromXmlStr = (str) => {
@@ -1306,11 +1311,11 @@ var makeTop = (jevko) => {
     }
   };
 };
-var makeTag = (tag) => async (jevko) => {
+var makeTag = (tag_) => async (jevko) => {
   const { subjevkos, suffix, ...rest } = jevko;
-  const tagWithAttrs = [
-    tag
-  ];
+  const isSelfClosing = tag_.endsWith("/");
+  const tag = isSelfClosing ? tag_.slice(0, -1) : tag_;
+  const tagWithAttrs = [];
   const children1 = [];
   const classes = [];
   for (const s of subjevkos) {
@@ -1323,7 +1328,13 @@ var makeTag = (tag) => async (jevko) => {
       children1.push(s);
   }
   if (classes.length > 0)
-    tagWithAttrs.push(`class="${classes.join(" ")}"`);
+    tagWithAttrs.unshift(`class="${classes.join(" ")}"`);
+  tagWithAttrs.unshift(tag);
+  if (isSelfClosing) {
+    if (children1.length > 0)
+      throw Error(`Expected no children in self-closing tag ${tag}, got ${children1.length}!`);
+    return `<${tagWithAttrs.join(" ")} />`;
+  }
   return `<${tagWithAttrs.join(" ")}>${await toHtml({
     subjevkos: children1,
     suffix,
