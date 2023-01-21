@@ -2438,7 +2438,7 @@ var map = (subjevkos) => {
     } else
       key = prefix;
     if (key in ret)
-      throw Error("dupe");
+      throw Error(`Duplicate key '${key}'`);
     ret[key] = inner(jevko);
   }
   return ret;
